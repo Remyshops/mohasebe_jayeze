@@ -124,6 +124,8 @@
     <h2>چقدر جنس نهایی لازم داری؟</h2>
     <label>تعداد کل مورد نیاز (عدد)</label>
     <input type="number" id="targetQty" value="20" min="0">
+    <label style="margin-top:10px">یا تعداد کارتن مورد نیاز</label>
+    <input type="number" id="targetCartons" value="1" min="0" step="any">
     <div class="badge" id="badgeTarget"></div>
     <div class="guide" id="notesTarget"></div>
   </div>
@@ -149,6 +151,15 @@
   }));
 
   document.querySelectorAll('input').forEach(i => i.addEventListener('input', calc));
+
+  const cs = () => Math.max(1, +$('carton').value || 1);
+  const syncCartons = () => { $('targetCartons').value = +((+$('targetQty').value || 0) / cs()).toFixed(2); };
+  $('targetQty').addEventListener('input', syncCartons);
+  $('carton').addEventListener('input', syncCartons);
+  $('targetCartons').addEventListener('input', () => {
+    $('targetQty').value = Math.round((+$('targetCartons').value || 0) * cs());
+    calc();
+  });
 
   function setBadge(id, ok) {
     const el = $(id);
@@ -193,9 +204,10 @@
       received = paid + freeCount;
       leftover = received - target;
       setBadge('badgeTarget', leftover === 0);
-      $('notesTarget').textContent = leftover > 0
-        ? `برای رسیدن به ${fmt(target)} عدد، باید ${fmt(paid)} عدد خرید کنی. ${fmt(leftover)} عدد اضافه دریافت می‌کنی.`
-        : `برای رسیدن به ${fmt(target)} عدد، باید ${fmt(paid)} عدد خرید کنی.`;
+      const tc = (+(target / cartonSize).toFixed(2)).toLocaleString('fa-IR');
+      $('notesTarget').innerHTML =
+        `برای رسیدن به ${fmt(target)} عدد (معادل ${tc} کارتن)، باید <b>${fmt(paid)}</b> عدد خرید کنی.` +
+        (leftover > 0 ? ` ${fmt(leftover)} عدد اضافه دریافت می‌کنی.` : '');
     }
 
     const cartons = received / cartonSize;
