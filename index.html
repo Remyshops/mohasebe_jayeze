@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>محاسبه‌گر جایزه</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #fff; --text: #1f2937; --muted: #6b7280;
+    --accent: #2563eb; --green: #16a34a; --border: #e5e7eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f172a; --card:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --border:#334155; --accent:#60a5fa; --green:#4ade80; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; font-family: Tahoma, Vazirmatn, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 8px 0 16px; text-align: center; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 14px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; color: var(--muted); font-weight: normal; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  input {
+    width: 100%; padding: 10px; font-size: 16px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--bg); border-radius: 10px; padding: 12px; text-align: center; }
+  .stat .val { font-size: 20px; font-weight: bold; }
+  .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .good .val { color: var(--green); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.7; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); cursor: pointer; font-size: 14px;
+  }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .hidden { display: none; }
+  .guide {
+    margin-top: 28px; padding: 16px; border-radius: 10px;
+    background: var(--bg); border: 2px solid var(--accent);
+    font-size: 17px; font-weight: bold; line-height: 2; color: #7c3aed;
+  }
+  .guide ul { margin: 8px 0 0; padding-right: 20px; }
+  .guide li { font-size: 17px; margin-bottom: 8px; color: #0e7490; }
+  .guide b { color: #16a34a; font-size: 20px; }
+  @media (prefers-color-scheme: dark) {
+    .guide { color: #c4b5fd; }
+    .guide li { color: #67e8f9; }
+    .guide b { color: #4ade80; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎁 محاسبه‌گر جایزه</h1>
+
+  <div class="card">
+    <h2>تنظیمات پروموشن</h2>
+    <div class="row">
+      <div>
+        <label>تعداد خرید (پولی)</label>
+        <input type="number" id="buy" value="17" min="1">
+      </div>
+      <div>
+        <label>تعداد رایگان</label>
+        <input type="number" id="free" value="3" min="0">
+      </div>
+      <div>
+        <label>تعداد در هر کارتن</label>
+        <input type="number" id="carton" value="20" min="1">
+      </div>
+      <div>
+        <label>قیمت هر عدد (اختیاری)</label>
+        <input type="number" id="price" placeholder="مثلاً 50000" min="0">
+      </div>
+      <div>
+        <label>نام جایزه</label>
+        <input type="text" id="prizeName" value="جایزه" placeholder="مثلاً واکس">
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-mode="paid">از خرید بگو</button>
+    <button class="tab" data-mode="target">از تعداد نهایی بگو</button>
+  </div>
+
+  <div class="card" id="modePaid">
+    <h2>چقدر می‌خواهی خرید کنی؟</h2>
+    <label>تعداد خرید پولی (عدد)</label>
+    <input type="number" id="paidQty" value="17" min="0">
+    <div class="guide" id="notesPaid"></div>
+  </div>
+
+  <div class="card hidden" id="modeTarget">
+    <h2>چقدر جنس نهایی لازم داری؟</h2>
+    <label>تعداد کل مورد نیاز (عدد)</label>
+    <input type="number" id="targetQty" value="20" min="0">
+    <div class="guide" id="notesTarget"></div>
+  </div>
+
+  <div class="card">
+    <h2>نتیجه</h2>
+    <div class="stats" id="results"></div>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const fmt = n => Math.round(n).toLocaleString('fa-IR');
+  let mode = 'paid';
+
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    mode = t.dataset.mode;
+    $('modePaid').classList.toggle('hidden', mode !== 'paid');
+    $('modeTarget').classList.toggle('hidden', mode !== 'target');
+    calc();
+  }));
+
+  document.querySelectorAll('input').forEach(i => i.addEventListener('input', calc));
+
+  function calc() {
+    const buy = Math.max(1, +$('buy').value || 0);
+    const free = Math.max(0, +$('free').value || 0);
+    const cartonSize = Math.max(1, +$('carton').value || 1);
+    const price = +$('price').value || 0;
+    const dealSize = buy + free;
+    const prizeName = ($('prizeName').value || 'جایزه').trim();
+
+    let paid, received, freeCount, deals, leftover = 0;
+
+    if (mode === 'paid') {
+      paid = Math.max(0, +$('paidQty').value || 0);
+      deals = Math.floor(paid / buy);
+      freeCount = deals * free;
+      received = paid + freeCount;
+      const remainder = paid % buy;
+      const lowPaid = paid - remainder;
+      const highPaid = lowPaid + buy;
+      const cart = n => (n / cartonSize).toLocaleString('fa-IR', { maximumFractionDigits: 2 });
+      const lowTotal = lowPaid + (lowPaid / buy) * free;
+      const highTotal = highPaid + (highPaid / buy) * free;
+      $('notesPaid').innerHTML = remainder
+        ? `<div>با ${fmt(paid)} عدد خرید، ${fmt(remainder)} عدد از پروموشن کامل استفاده نمی‌شود و جایزه‌ای به آن تعلق نمی‌گیرد. برای خرید بدون باقی‌مانده:</div>
+           <ul style="margin:8px 0 0;padding-right:18px;line-height:2">
+             ${lowPaid > 0 ? `<li>کمتر: <b>${fmt(lowPaid)}</b> عدد خرید (${fmt(remainder)} عدد کمتر) ← ${fmt(lowPaid / buy * free)} ${prizeName} ← جمع ${fmt(lowTotal)} عدد ← معادل ${cart(lowTotal)} کارتن</li>` : ''}
+             <li>بیشتر: <b>${fmt(highPaid)}</b> عدد خرید (${fmt(buy - remainder)} عدد بیشتر) ← ${fmt(highPaid / buy * free)} ${prizeName} ← جمع ${fmt(highTotal)} عدد ← معادل ${cart(highTotal)} کارتن</li>
+           </ul>`
+        : `<div>هر ${fmt(buy)} عدد خرید، ${fmt(free)} ${prizeName} دارد. تعداد وارد شده کاملاً بدون باقی‌مانده است.</div>`;
+    } else {
+      const target = Math.max(0, +$('targetQty').value || 0);
+      deals = Math.ceil(target / dealSize);
+      paid = deals * buy;
+      freeCount = deals * free;
+      received = paid + freeCount;
+      leftover = received - target;
+      $('notesTarget').textContent = leftover > 0
+        ? `برای رسیدن به ${fmt(target)} عدد، باید ${fmt(paid)} عدد خرید کنی. ${fmt(leftover)} عدد اضافه دریافت می‌کنی.`
+        : `برای رسیدن به ${fmt(target)} عدد، باید ${fmt(paid)} عدد خرید کنی.`;
+    }
+
+    const cartons = received / cartonSize;
+    const totalCost = price ? paid * price : null;
+    const unitCost = price && received ? totalCost / received : null;
+    const discount = dealSize ? (free / dealSize) * 100 : 0;
+
+    const stats = [
+      { v: fmt(paid), l: 'تعداد پولی', cls: '' },
+      { v: fmt(freeCount), l: `تعداد ${prizeName}`, cls: 'good' },
+      { v: fmt(received), l: 'کل دریافتی', cls: '' },
+      { v: cartons.toLocaleString('fa-IR', { maximumFractionDigits: 2 }), l: 'معادل کارتن', cls: '' },
+      { v: `${discount.toFixed(1)}٪`, l: 'درصد تخفیف مؤثر', cls: 'good' },
+      { v: fmt(deals), l: 'تعداد دفعات پروموشن', cls: '' },
+    ];
+    if (totalCost !== null) {
+      stats.push({ v: fmt(totalCost), l: 'هزینه کل', cls: '' });
+      stats.push({ v: fmt(unitCost), l: 'هزینه واقعی هر عدد', cls: 'good' });
+    }
+
+    $('results').innerHTML = stats.map(s =>
+      `<div class="stat ${s.cls}"><div class="val">${s.v}</div><div class="lbl">${s.l}</div></div>`
+    ).join('');
+  }
+
+  calc();
+</script>
+</body>
+</html>
